@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAccount } from "@/context/AccountContext";
 import { parseMT5Report } from "@/lib/parsers/mt5Parser";
 import { X, Upload, CheckCircle2, AlertCircle } from "lucide-react";
@@ -17,6 +18,7 @@ export function LogTradeModal({
   onSuccess,
 }: LogTradeModalProps) {
   const { selectedAccountId } = useAccount();
+  const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<"manual" | "upload">("manual");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{
@@ -40,6 +42,11 @@ export function LogTradeModal({
   const [screenshotBefore, setScreenshotBefore] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Ensure SSR hydration safety for createPortal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Lock background scrolling and handle Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -58,7 +65,7 @@ export function LogTradeModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   // Manual Form Submission
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -155,16 +162,16 @@ export function LogTradeModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="relative bg-[#0e101a] border border-[#1e2133] rounded-2xl sm:rounded-3xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-auto"
       >
-        {/* Sticky Modal Header with Tabs and Close Button */}
+        {/* Sticky Modal Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#1b1d2b] bg-[#0e101a] shrink-0">
           <div className="flex gap-1.5 p-1 bg-[#141624] rounded-xl border border-[#232536]">
             <button
@@ -221,7 +228,6 @@ export function LogTradeModal({
 
         {/* Modal Scrollable Body */}
         <div className="overflow-y-auto flex-1 p-4 sm:p-6">
-          {/* Tab 1: Manual Trade Form */}
           {tab === "manual" && (
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -349,7 +355,6 @@ export function LogTradeModal({
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* 1. Strategy / Setup Input */}
                   <div>
                     <label className="text-[10px] text-zinc-400">
                       Strategy / Setup
@@ -363,7 +368,6 @@ export function LogTradeModal({
                     />
                   </div>
 
-                  {/* 2. Session Selector */}
                   <div>
                     <label className="text-[10px] text-zinc-400">Session</label>
                     <select
@@ -378,7 +382,6 @@ export function LogTradeModal({
                     </select>
                   </div>
 
-                  {/* 3. Emotional State */}
                   <div>
                     <label className="text-[10px] text-zinc-400">
                       Emotional State
@@ -395,7 +398,6 @@ export function LogTradeModal({
                     </select>
                   </div>
 
-                  {/* 4. Followed Rules Toggle */}
                   <div className="flex flex-col justify-end">
                     <label className="flex items-center gap-2 p-2 rounded-lg bg-[#181a29] border border-[#26283d] text-xs text-zinc-300 cursor-pointer select-none">
                       <input
@@ -456,7 +458,6 @@ export function LogTradeModal({
             </form>
           )}
 
-          {/* Tab 2: MT5 Statement Drag & Drop Upload */}
           {tab === "upload" && (
             <div className="p-4 sm:p-8 space-y-4 text-center">
               <div className="border-2 border-dashed border-[#2b2d42] hover:border-purple-500 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center transition-all bg-[#121320]/50">
@@ -486,4 +487,6 @@ export function LogTradeModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
