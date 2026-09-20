@@ -25,38 +25,136 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Fetch recent trades for ledger context
+    // 1. Fetch Account Details & Risk Rules
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+    });
+
+    // 2. Fetch Recent Trades for Ledger & Analytics Context
     const trades = await prisma.trade.findMany({
       where: { accountId },
       orderBy: { closeTime: "desc" },
-      take: 40,
+      take: 60,
     });
 
+    // 3. Fetch Real Cash Flow Transactions (Deposits, Withdrawals, Payouts)
+    const transactions = await prisma.accountTransaction.findMany({
+      where: { accountId },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    });
+
+    // --- Analytics Calculations ---
     const totalTrades = trades.length;
     const wins = trades.filter((t) => t.pnl > 0);
     const losses = trades.filter((t) => t.pnl < 0);
+    const grossProfit = wins.reduce((acc, t) => acc + t.pnl, 0);
+    const grossLoss = Math.abs(losses.reduce((acc, t) => acc + t.pnl, 0));
     const netPnl = trades.reduce((acc, t) => acc + t.pnl, 0);
+
     const winRate =
       totalTrades > 0 ? ((wins.length / totalTrades) * 100).toFixed(1) : "0.0";
+    const profitFactor =
+      grossLoss > 0
+        ? (grossProfit / grossLoss).toFixed(2)
+        : grossProfit > 0
+          ? "Max (No Losses)"
+          : "0.00";
+    const avgWin =
+      wins.length > 0 ? (grossProfit / wins.length).toFixed(2) : "0.00";
+    const avgLoss =
+      losses.length > 0 ? (grossLoss / losses.length).toFixed(2) : "0.00";
+
     const rulesFollowed = trades.filter((t) => t.followedRules).length;
     const ruleFollowRate =
       totalTrades > 0
         ? ((rulesFollowed / totalTrades) * 100).toFixed(1)
         : "100.0";
-    const fomoTrades = trades.filter(
-      (t) => t.emotion === "FOMO" || t.emotion === "REVENGE",
-    ).length;
 
-    const systemPrompt = `You are "Trading Buddy" — an elite institutional trading coach, risk manager, and quantitative behavioral analyst. 
+    // Cash Flow Totals
+    const totalDeposits = transactions
+      .filter((tx) => tx.type.toUpperCase() === "DEPOSIT")
+      .reduce((acc, tx) => acc + Number(tx.amount), 0);
+    const totalWithdrawals = transactions
+      .filter(
+        (tx) =>
+          tx.type.toUpperCase() === "WITHDRAWAL" ||
+          tx.type.toUpperCase() === "PAYOUT",
+      )
+      .reduce((acc, tx) => acc + Number(tx.amount), 0);
+
+    const initialBal = account?.initialBalance || 10000;
+    const currentEquity =
+      initialBal + netPnl + totalDeposits - totalWithdrawals;
+
+    // Session Performance Breakdown
+    const sessionStats: Record<string, { trades: number; pnl: number }> = {};
+    trades.forEach((t) => {
+      const s = t.session || "UNSPECIFIED";
+      if (!sessionStats[s]) sessionStats[s] = { trades: 0, pnl: 0 };
+      sessionStats[s].trades += 1;
+      sessionStats[s].pnl += t.pnl;
+    });
+
+    // Directional Edge
+    const longTrades = trades.filter((t) => t.side.toUpperCase() === "LONG");
+    const shortTrades = trades.filter((t) => t.side.toUpperCase() === "SHORT");
+    const longPnL = longTrades.reduce((acc, t) => acc + t.pnl, 0);
+    const shortPnL = shortTrades.reduce((acc, t) => acc + t.pnl, 0);
+
+    // Psychology & Tilt Audit
+    const fomoCount = trades.filter((t) => t.emotion === "FOMO").length;
+    const revengeCount = trades.filter((t) => t.emotion === "REVENGE").length;
+    const anxiousCount = trades.filter((t) => t.emotion === "ANXIOUS").length;
+    const calmCount = trades.filter((t) => t.emotion === "CALM").length;
+
+    const systemPrompt = `You are "Trading Buddy" — an elite institutional trading coach, risk manager, and quantitative behavioral psychologist built directly into the TradingBuddy journal platform.
 You evaluate executions through risk management, expectancy, and psychology over short-term dollar outcomes.
 ${enableWebSearch ? "You have real-time live internet access. When asked about current stock prices, earnings, macroeconomic data (CPI, NFP, Fed interest rates), or live financial events, ground your answers in the latest web data." : ""}
 
-Current Account Stats:
-• Trades: ${totalTrades}
-• Net P&L: $${netPnl.toFixed(2)}
-• Win Rate: ${winRate}% (${wins.length}W / ${losses.length}L)
-• Rules Followed: ${ruleFollowRate}%
-• Tilt/FOMO Flags: ${fomoTrades}
+About the Platform (TradingBuddy):
+• What TradingBuddy Is: A professional-grade discipline journal and edge intelligence app engineered for active prop and retail traders.
+• How It Helps: It bridges the gap between technical setups and psychological discipline. It tracks rule compliance, session edge, execution variances, and financial cash flows to stop emotional tilt, revenge trading, and overleveraging before they blow accounts.
+• Core Capabilities: Live MT5 statement synchronization, real-time command center analytics, economic catalyst overlay calendar, discipline auditing, cash-flow/payout tracking, and institutional AI executive reviews.
+• Tone: Elite prop firm risk desk manager. Confident, encouraging, strictly data-grounded, empathetic to trader psychology, yet uncompromising on rule compliance and capital preservation. Greet traders warmly when spoken to.
+
+Active Account Profile:
+• Account Name: ${account?.name || "Main Ledger"} (${account?.broker || "Direct Broker"})
+• Currency: ${account?.currency || "USD"}
+• Starting Balance: $${initialBal.toFixed(2)}
+• Current Estimated Balance: $${currentEquity.toFixed(2)}
+• Max Risk Cap: ${account?.maxRisk ?? 2.0}% per trade
+• Max Drawdown Limit: ${account?.maxDrawdown ?? 5.0}%
+
+Cash Flow & Payout History:
+• Total Secured Withdrawals / Payouts: $${totalWithdrawals.toFixed(2)} (${transactions.filter((tx) => tx.type.toUpperCase() === "WITHDRAWAL" || tx.type.toUpperCase() === "PAYOUT").length} payouts)
+• Total Deposits: $${totalDeposits.toFixed(2)}
+• Recent Transaction Log:
+${
+  transactions.length === 0
+    ? "No transaction records logged yet."
+    : JSON.stringify(
+        transactions.slice(0, 10).map((tx) => ({
+          type: tx.type,
+          amount: tx.amount,
+          note: tx.note,
+          date: tx.createdAt,
+        })),
+        null,
+        2,
+      )
+}
+
+Performance & Behavioral Analytics:
+• Total Trades Executed: ${totalTrades}
+• Net Realized P&L: $${netPnl.toFixed(2)}
+• Win Rate: ${winRate}% (${wins.length} Wins / ${losses.length} Losses)
+• Profit Factor: ${profitFactor}
+• Average Win: $${avgWin} | Average Loss: $${avgLoss}
+• Rule Discipline Adherence: ${ruleFollowRate}% (${rulesFollowed}/${totalTrades} followed plan)
+• Emotional State Distribution: Calm: ${calmCount} | FOMO: ${fomoCount} | Revenge/Tilt: ${revengeCount} | Anxious: ${anxiousCount}
+• Directional Variance: Long P&L: $${longPnL.toFixed(2)} (${longTrades.length} trades) | Short P&L: $${shortPnL.toFixed(2)} (${shortTrades.length} trades)
+• Session Edge Breakdown: ${JSON.stringify(sessionStats)}
 
 Recent Trade Ledger Sample:
 ${JSON.stringify(
@@ -64,12 +162,16 @@ ${JSON.stringify(
     pair: t.symbol,
     side: t.side,
     size: t.lotSize,
+    entry: t.entryPrice,
+    exit: t.exitPrice,
     pnl: t.pnl,
     session: t.session,
     strategy: t.strategy,
+    confluences: t.confluences,
     followedRules: t.followedRules,
     emotion: t.emotion,
     notes: t.notes,
+    closed: t.closeTime,
   })),
   null,
   2,
@@ -131,7 +233,9 @@ Format strictly with these sections:
             totalTrades,
             netPnl,
             winRate,
+            profitFactor,
             ruleFollowRate,
+            totalWithdrawals,
           },
         },
       });
