@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   X,
   ExternalLink,
@@ -37,21 +37,45 @@ interface TradeDetailModalProps {
 }
 
 export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
+  // Lock background scroll and add Escape dismiss listener
+  useEffect(() => {
+    if (!trade) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [trade, onClose]);
+
   if (!trade) return null;
 
   const isWin = trade.pnl >= 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-[#0e101a] border border-[#1e2133] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1b1d2b]">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-white font-mono">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative bg-[#0e101a] border border-[#1e2133] rounded-2xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-auto"
+      >
+        {/* Sticky Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#1b1d2b] bg-[#0e101a] shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <span className="text-base sm:text-lg font-bold text-white font-mono">
               {trade.symbol}
             </span>
             <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+              className={`text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-full ${
                 trade.side === "LONG"
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
@@ -60,29 +84,31 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
               {trade.side}
             </span>
             {trade.ticketId && (
-              <span className="text-xs text-zinc-500 font-mono">
+              <span className="text-[11px] sm:text-xs text-zinc-500 font-mono">
                 #{trade.ticketId}
               </span>
             )}
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-[#1a1c2b]"
+            aria-label="Close modal"
+            className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-[#1a1c2b] transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-          {/* Top Metric Cards */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
+        {/* Scrollable Content */}
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+          {/* Top Metric Cards: 2 cols on mobile, 4 cols on desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
               <p className="text-[10px] text-zinc-400 font-medium uppercase">
                 Net P&L
               </p>
               <p
-                className={`text-lg font-bold font-mono mt-1 ${
+                className={`text-base sm:text-lg font-bold font-mono mt-1 truncate ${
                   isWin ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
@@ -91,67 +117,69 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
                   : `-$${Math.abs(trade.pnl).toFixed(2)}`}
               </p>
             </div>
-            <div className="p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
+            <div className="p-2.5 sm:p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
               <p className="text-[10px] text-zinc-400 font-medium uppercase">
                 Volume
               </p>
-              <p className="text-lg font-bold text-zinc-200 font-mono mt-1">
+              <p className="text-base sm:text-lg font-bold text-zinc-200 font-mono mt-1 truncate">
                 {trade.lotSize} lots
               </p>
             </div>
-            <div className="p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
+            <div className="p-2.5 sm:p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
               <p className="text-[10px] text-zinc-400 font-medium uppercase">
                 Entry
               </p>
-              <p className="text-sm font-semibold text-zinc-300 font-mono mt-1.5">
+              <p className="text-xs sm:text-sm font-semibold text-zinc-300 font-mono mt-1 truncate">
                 {trade.entryPrice}
               </p>
             </div>
-            <div className="p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
+            <div className="p-2.5 sm:p-3 bg-[#131522] rounded-xl border border-[#1f2235]">
               <p className="text-[10px] text-zinc-400 font-medium uppercase">
                 Exit
               </p>
-              <p className="text-sm font-semibold text-zinc-300 font-mono mt-1.5">
+              <p className="text-xs sm:text-sm font-semibold text-zinc-300 font-mono mt-1 truncate">
                 {trade.exitPrice}
               </p>
             </div>
           </div>
 
           {/* Psychology & Discipline Badges */}
-          <div className="p-4 bg-[#121320] border border-[#1e2030] rounded-xl space-y-3">
-            <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+          <div className="p-3.5 sm:p-4 bg-[#121320] border border-[#1e2030] rounded-xl sm:rounded-2xl space-y-2.5 sm:space-y-3">
+            <p className="text-[11px] sm:text-xs font-semibold text-purple-300 uppercase tracking-wider">
               Execution & Psychology Context
             </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#1a1c2b] text-zinc-300 rounded-lg border border-[#27293d]">
-                <Clock className="h-3.5 w-3.5 text-purple-400" />
-                Session: {trade.session || "Unspecified"}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
+              <span className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#1a1c2b] text-zinc-300 rounded-lg border border-[#27293d]">
+                <Clock className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                <span>Session: {trade.session || "Unspecified"}</span>
               </span>
 
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#1a1c2b] text-zinc-300 rounded-lg border border-[#27293d]">
-                <Tag className="h-3.5 w-3.5 text-purple-400" />
-                Setup: {trade.strategy || "Standard Execution"}
+              <span className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#1a1c2b] text-zinc-300 rounded-lg border border-[#27293d]">
+                <Tag className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                <span>Setup: {trade.strategy || "Standard Execution"}</span>
               </span>
 
               <span
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg border ${
                   trade.followedRules
                     ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
                     : "bg-rose-500/10 text-rose-300 border-rose-500/20"
                 }`}
               >
                 {trade.followedRules ? (
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                 ) : (
-                  <ShieldAlert className="h-3.5 w-3.5" />
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                 )}
-                {trade.followedRules
-                  ? "Plan Followed"
-                  : "Rule Broken / Discretionary"}
+                <span>
+                  {trade.followedRules
+                    ? "Plan Followed"
+                    : "Rule Broken / Discretionary"}
+                </span>
               </span>
 
               {trade.emotion && (
-                <span className="px-3 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-lg font-medium">
+                <span className="px-2.5 sm:px-3 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-lg font-medium">
                   State: {trade.emotion}
                 </span>
               )}
@@ -162,14 +190,14 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
           {trade.screenshotBefore && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-400">
+                <span className="text-[11px] sm:text-xs font-semibold text-zinc-400">
                   Chart Rationale
                 </span>
                 <a
                   href={trade.screenshotBefore}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                  className="text-[11px] sm:text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
                 >
                   <span>Open Full Size</span>
                   <ExternalLink className="h-3 w-3" />
@@ -180,7 +208,7 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
                 <img
                   src={trade.screenshotBefore}
                   alt="Trade Chart Setup"
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto max-h-72 object-contain"
                 />
               </div>
             </div>
@@ -189,10 +217,10 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
           {/* Notes */}
           {trade.notes && (
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-zinc-400">
+              <span className="text-[11px] sm:text-xs font-semibold text-zinc-400">
                 Trader Reflection
               </span>
-              <p className="text-xs text-zinc-300 p-3.5 bg-[#121320] border border-[#1e2030] rounded-xl leading-relaxed whitespace-pre-wrap">
+              <p className="text-xs text-zinc-300 p-3 sm:p-3.5 bg-[#121320] border border-[#1e2030] rounded-xl leading-relaxed whitespace-pre-wrap">
                 {trade.notes}
               </p>
             </div>

@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
@@ -25,8 +26,7 @@ const AVAILABLE_MODELS = [
     label: "DeepSeek V4 Flash",
     value: "deepseek/deepseek-v4-flash-0731:free",
   },
-  { label: "Cohere North Mini ", value: "cohere/north-mini-code:free" },
-
+  { label: "Cohere North Mini", value: "cohere/north-mini-code:free" },
   {
     label: "NVIDIA LLaMA Nemotron Embed VL",
     value: "nvidia/llama-nemotron-embed-vl-1b-v2:free",
@@ -166,30 +166,57 @@ export default function AIBuddyPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-[calc(100vh-7rem)] flex flex-col">
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#1b1d2b] pb-4 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              AI Trading Buddy
-            </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              Institutional Edge
-            </span>
+    <div className="max-w-7xl mx-auto h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-6.5rem)] flex flex-col space-y-3 pb-2 pt-1">
+      {/* Header Bar & Responsive Control Strip */}
+      <div className="border-b border-[#1b1d2b] pb-3 shrink-0 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+                AI Trading Buddy
+              </h1>
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Institutional Edge
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 hidden sm:block">
+              Tactical trade reviews, real-time market scans, and discipline
+              auditing.
+            </p>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Tactical trade reviews, real-time market scans, and discipline
-            auditing.
-          </p>
+
+          {/* Quick Tab Switcher */}
+          <div className="flex p-0.5 sm:p-1 bg-[#0e101a] border border-[#1b1d2b] rounded-xl shrink-0">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all ${
+                activeTab === "chat"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Coach
+            </button>
+            <button
+              onClick={() => setActiveTab("review")}
+              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all ${
+                activeTab === "review"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Reviews
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Live Web Search Toggle */}
+        {/* Compact Horizontal Toolbar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          {/* Web Search Toggle Button */}
           <button
             onClick={() => setEnableWebSearch(!enableWebSearch)}
             title="Toggle Live Market Web Search"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold border shrink-0 transition-all ${
               enableWebSearch
                 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                 : "bg-[#0e101a] text-zinc-500 border-[#1b1d2b] hover:text-zinc-300"
@@ -198,16 +225,16 @@ export default function AIBuddyPage() {
             <Globe
               className={`h-3.5 w-3.5 ${enableWebSearch ? "text-emerald-400 animate-pulse" : ""}`}
             />
-            <span>Web Search: {enableWebSearch ? "ON" : "OFF"}</span>
+            <span>Search: {enableWebSearch ? "ON" : "OFF"}</span>
           </button>
 
-          {/* Model Selector Dropdown */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0e101a] border border-[#1b1d2b]">
-            <Cpu className="h-3.5 w-3.5 text-purple-400" />
+          {/* Model Selector Pill */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0e101a] border border-[#1b1d2b] shrink-0 min-w-0">
+            <Cpu className="h-3.5 w-3.5 text-purple-400 shrink-0" />
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer"
+              className="bg-transparent text-[11px] sm:text-xs text-zinc-300 focus:outline-none cursor-pointer max-w-[150px] sm:max-w-[220px] truncate"
             >
               {AVAILABLE_MODELS.map((m) => (
                 <option
@@ -221,91 +248,74 @@ export default function AIBuddyPage() {
             </select>
           </div>
 
-          <div className="flex gap-1.5 p-1 bg-[#0e101a] border border-[#1b1d2b] rounded-xl">
-            <button
-              onClick={() => setActiveTab("chat")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === "chat"
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Interactive Coach
-            </button>
-            <button
-              onClick={() => setActiveTab("review")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === "review"
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Executive Reviews
-            </button>
-          </div>
-
+          {/* Generate Review Button */}
           <button
             onClick={handleGenerateReport}
             disabled={isGeneratingReport}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[11px] sm:text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all shrink-0 ml-auto disabled:opacity-50"
           >
             {isGeneratingReport ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            <span>
-              {isGeneratingReport ? "Analyzing Ledger..." : "Generate Review"}
-            </span>
+            <span>{isGeneratingReport ? "Analyzing..." : "Review"}</span>
           </button>
         </div>
       </div>
 
       {/* Tab 1: Interactive Chat Mode */}
       {activeTab === "chat" && (
-        <div className="flex-1 flex flex-col rounded-2xl border border-[#1b1d2b] bg-[#0e101a] overflow-hidden">
-          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+        <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-[#1b1d2b] bg-[#0e101a] overflow-hidden">
+          {/* Scrollable Message History */}
+          <div className="flex-1 p-3 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4">
             {messages.map((m, idx) => (
               <div
                 key={idx}
-                className={`flex gap-3 max-w-3xl ${
+                className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-3xl ${
                   m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
                 }`}
               >
                 <div
-                  className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`h-7 w-7 sm:h-8 sm:w-8 rounded-xl flex items-center justify-center shrink-0 ${
                     m.role === "assistant"
                       ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
-                      : "bg-[#1e2030] text-zinc-300 font-bold text-xs"
+                      : "bg-[#1e2030] text-zinc-300 font-bold text-[10px] sm:text-xs"
                   }`}
                 >
-                  {m.role === "assistant" ? <Bot className="h-4 w-4" /> : "TB"}
+                  {m.role === "assistant" ? (
+                    <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  ) : (
+                    "TB"
+                  )}
                 </div>
                 <div
-                  className={`p-4 rounded-2xl text-xs leading-relaxed ${
+                  className={`p-3 sm:p-4 rounded-2xl text-xs leading-relaxed ${
                     m.role === "assistant"
                       ? "bg-[#141624] text-zinc-200 border border-[#232536]"
                       : "bg-purple-600 text-white"
                   }`}
                 >
                   {m.role === "assistant" ? (
-                    <div className="prose prose-invert prose-xs max-w-none space-y-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-white [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-purple-300 [&_strong]:text-white [&_em]:text-zinc-400 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-1 [&_p]:leading-relaxed">
+                    <div className="prose prose-invert prose-xs max-w-none space-y-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-white [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-purple-300 [&_strong]:text-white [&_em]:text-zinc-400 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-1 [&_p]:leading-relaxed break-words">
                       <ReactMarkdown>{m.content}</ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap">{m.content}</p>
+                    <p className="whitespace-pre-wrap break-words">
+                      {m.content}
+                    </p>
                   )}
                 </div>
               </div>
             ))}
             {isChatSending && (
-              <div className="flex gap-3 max-w-3xl mr-auto items-center text-xs text-zinc-500">
-                <div className="h-8 w-8 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                  <Bot className="h-4 w-4 animate-pulse" />
+              <div className="flex gap-2 sm:gap-3 max-w-3xl mr-auto items-center text-xs text-zinc-500">
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                  <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-pulse" />
                 </div>
-                <span>
+                <span className="text-[11px] sm:text-xs">
                   {enableWebSearch
-                    ? "Searching live markets and analyzing..."
+                    ? "Scanning live markets & journal..."
                     : "Coach is analyzing..."}
                 </span>
               </div>
@@ -313,24 +323,25 @@ export default function AIBuddyPage() {
             <div ref={chatBottomRef} />
           </div>
 
+          {/* Chat Input Bar */}
           <form
             onSubmit={handleSendMessage}
-            className="p-4 border-t border-[#1b1d2b] bg-[#121320] flex items-center gap-3 shrink-0"
+            className="p-2.5 sm:p-4 border-t border-[#1b1d2b] bg-[#121320] flex items-center gap-2 sm:gap-3 shrink-0"
           >
             <input
               type="text"
-              placeholder="Ask about your trades OR live markets (e.g. 'How is NVDA stock today?' or 'Any high-impact news for Gold?')..."
+              placeholder="Ask about trades or markets (e.g. 'How is Gold today?')..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               disabled={isChatSending}
-              className="flex-1 bg-[#181a29] border border-[#26283d] text-xs text-white px-4 py-2.5 rounded-xl focus:outline-none focus:border-purple-500 disabled:opacity-50"
+              className="flex-1 bg-[#181a29] border border-[#26283d] text-xs text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl focus:outline-none focus:border-purple-500 disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isChatSending || !inputMessage.trim()}
-              className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-50"
+              className="p-2 sm:p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-50 shrink-0"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
           </form>
         </div>
@@ -338,33 +349,33 @@ export default function AIBuddyPage() {
 
       {/* Tab 2: Executive Reviews Mode */}
       {activeTab === "review" && (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 overflow-hidden">
-          <div className="md:col-span-1 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-4 flex flex-col">
-            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <History className="h-3.5 w-3.5 text-purple-400" /> Past
-              Evaluations
+        <div className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-4 gap-3 md:gap-6 overflow-hidden">
+          {/* Past Reports List */}
+          <div className="md:col-span-1 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-3 sm:p-4 flex flex-col max-h-44 md:max-h-full shrink-0">
+            <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 sm:mb-3 flex items-center gap-1.5 shrink-0">
+              <History className="h-3.5 w-3.5 text-purple-400" /> Evaluations
             </span>
-            <div className="space-y-2 overflow-y-auto flex-1">
+            <div className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-1">
               {reports.length === 0 ? (
-                <p className="text-xs text-zinc-500 mt-4 text-center">
-                  No evaluations yet. Click &quot;Generate Review&quot; above.
+                <p className="text-xs text-zinc-500 mt-2 text-center">
+                  No evaluations yet. Click &quot;Review&quot; above.
                 </p>
               ) : (
                 reports.map((r) => (
                   <button
                     key={r.id}
                     onClick={() => setSelectedReport(r)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    className={`w-full text-left p-2.5 sm:p-3 rounded-xl border transition-all ${
                       selectedReport?.id === r.id
                         ? "bg-purple-600/15 border-purple-500/40 text-white"
                         : "bg-[#141624] border-[#232536] text-zinc-400 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold font-mono">
-                        Date: {r.weekRange}
+                      <span className="text-[11px] sm:text-xs font-bold font-mono truncate">
+                        {r.weekRange}
                       </span>
-                      <span className="text-xs font-extrabold text-purple-400 px-2 py-0.5 rounded bg-[#1f2238] border border-[#2a2d48]">
+                      <span className="text-[11px] sm:text-xs font-extrabold text-purple-400 px-1.5 py-0.5 rounded bg-[#1f2238] border border-[#2a2d48]">
                         {r.grade}
                       </span>
                     </div>
@@ -374,36 +385,37 @@ export default function AIBuddyPage() {
             </div>
           </div>
 
-          <div className="md:col-span-3 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-6 overflow-y-auto">
+          {/* Report View Panel */}
+          <div className="flex-1 md:col-span-3 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-4 sm:p-6 overflow-y-auto min-h-0">
             {selectedReport ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-[#1b1d2b] pb-4">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1b1d2b] pb-3 sm:pb-4">
                   <div>
-                    <span className="text-xs text-zinc-400 uppercase tracking-wider">
+                    <span className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider">
                       Evaluation for {selectedReport.weekRange}
                     </span>
-                    <h2 className="text-xl font-bold text-white mt-0.5">
+                    <h2 className="text-base sm:text-xl font-bold text-white mt-0.5">
                       Discipline & Edge Audit
                     </h2>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-400">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-[11px] sm:text-xs text-zinc-400 hidden sm:inline">
                       Assigned Grade
                     </span>
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-xl font-extrabold text-white shadow-lg shadow-purple-900/40">
+                    <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-base sm:text-xl font-extrabold text-white shadow-lg shadow-purple-900/40">
                       {selectedReport.grade}
                     </div>
                   </div>
                 </div>
 
-                <div className="prose prose-invert max-w-none text-xs text-zinc-300 leading-relaxed space-y-3 font-sans [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-purple-300 [&_strong]:text-white [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1.5 [&_ul]:list-disc [&_ul]:pl-4">
+                <div className="prose prose-invert max-w-none text-xs text-zinc-300 leading-relaxed space-y-2.5 font-sans [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-purple-300 [&_strong]:text-white [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1 [&_ul]:list-disc [&_ul]:pl-4 break-words">
                   <ReactMarkdown>{selectedReport.analysis}</ReactMarkdown>
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center text-zinc-500">
-                <BrainCircuit className="h-10 w-10 text-zinc-600 mb-2" />
-                <p className="text-sm">
+              <div className="h-full flex flex-col items-center justify-center text-center text-zinc-500 py-8">
+                <BrainCircuit className="h-8 w-8 sm:h-10 sm:w-10 text-zinc-600 mb-2" />
+                <p className="text-xs sm:text-sm">
                   Select an evaluation or generate a new one.
                 </p>
               </div>

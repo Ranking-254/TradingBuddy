@@ -23,7 +23,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Trades", href: "/trades", icon: CandlestickChart },
   { name: "Calendar", href: "/calendar", icon: CalendarDays },
-  { name: "Buddy AI", href: "/ai-coach", icon: Bot, badge: "AI" },
+  { name: "Buddy AI", href: "/ai-buddy", icon: Bot, badge: "AI" },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
 ];
 
