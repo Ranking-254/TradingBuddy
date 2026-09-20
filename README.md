@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TradingBuddy 📈
 
-## Getting Started
+> **An institutional-grade trading journal and cognitive performance platform engineered for discipline, edge tracking, and behavioral risk management.**
 
-First, run the development server:
+TradingBuddy bridges the gap between mechanical execution and trading psychology. Built for serious retail and prop firm traders, it tracks your setups, analyzes emotional variance, audits rule adherence, and manages portfolio cash flow without distorting performance statistics.
+
+---
+
+## ⚡ Core Features
+
+- **Dynamic Command Center**: Real-time portfolio equity curves rendered with smooth SVG mathematics, tooltip inspection, and live session stats.
+- **Behavioral DNA & Cognitive Edge**: A dynamic 4-pillar radar assessing Discipline, Risk Management, Strategy, and Psychology in real time.
+- **Cash Flow & Payout Engine**: Log broker deposits and prop firm payouts independently so withdrawals never artificially penalize your win rate, profit factor, or trade metrics.
+- **Buddy AI Cognitive Coach**: Real-time behavioral audits analyzing trade history, emotion tags (FOMO, Greed, Anxiety, Revenge), and rule deviations to diagnose cognitive leaks.
+- **Interactive Economic Calendar**: Visual day-by-day P&L synced with macro-economic event impact indicators (NFP, CPI, FOMC).
+- **Institutional Guardrails**: Rule-breach detection, setup tagging, and risk-per-trade limits across multiple trading accounts (Personal, Prop, Challenge).
+- **Production Authentication**: Secure email/password and one-click Google OAuth with Supabase Auth and Row-Level Security (RLS).
+- **Mobile-Responsive Architecture**: Dark-themed responsive dashboard with collapsible navigation drawer and compact mobile controls.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, React 19, Turbopack)
+- **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL, Row-Level Security, Google OAuth)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **AI Integration**: Custom Heuristic Engine with optional [Google Gemini API](https://ai.google.dev/) integration
+- **Deployment**: [Vercel](https://vercel.com/)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+
+Ensure you have installed:
+
+- Node.js (v18.17+ or v20+)
+- npm, yarn, or pnpm
+- A free [Supabase](https://supabase.com/) account
+
+### 2. Clone the Repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [https://github.com/](https://github.com/)<your-username>/trading-buddy.git
+cd trading-buddy
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

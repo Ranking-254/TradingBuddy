@@ -1,0 +1,416 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import { useAccount } from "@/context/AccountContext";
+import {
+  Bot,
+  Sparkles,
+  Send,
+  RefreshCw,
+  History,
+  BrainCircuit,
+  Cpu,
+  Globe,
+} from "lucide-react";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const AVAILABLE_MODELS = [
+  { label: "Auto Free Router (Recommended)", value: "openrouter/free" },
+  {
+    label: "DeepSeek V4 Flash",
+    value: "deepseek/deepseek-v4-flash-0731:free",
+  },
+  { label: "Cohere North Mini ", value: "cohere/north-mini-code:free" },
+
+  {
+    label: "NVIDIA LLaMA Nemotron Embed VL",
+    value: "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+  },
+  {
+    label: "Inclusion Ling 3.0 Flash VL",
+    value: "inclusionai/ling-3.0-flash-vl:free",
+  },
+];
+
+export default function AIBuddyPage() {
+  const { selectedAccountId, selectedAccount } = useAccount();
+  const [activeTab, setActiveTab] = useState<"chat" | "review">("chat");
+  const [selectedModel, setSelectedModel] = useState("openrouter/free");
+  const [enableWebSearch, setEnableWebSearch] = useState(true);
+
+  // Chat State
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: `Hello! I'm your **Trading Buddy**. I'm connected directly to your ledger for **${selectedAccount?.name || "your account"}**, and live web search is **active**. Ask me about your trade history, or ask for live market updates on assets like NVIDIA, Gold, or upcoming economic events!`,
+    },
+  ]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isChatSending, setIsChatSending] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Weekly Review State
+  const [reports, setReports] = useState<any[]>([]);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<any | null>(null);
+
+  const scrollToBottom = () => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const fetchReports = async () => {
+    if (!selectedAccountId) return;
+    try {
+      const res = await fetch("/api/ai/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: selectedAccountId,
+          action: "get-reports",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data);
+        if (data.length > 0 && !selectedReport) {
+          setSelectedReport(data[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load reports:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, [selectedAccountId]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || !selectedAccountId || isChatSending) return;
+
+    const userText = inputMessage.trim();
+    setInputMessage("");
+    setMessages((prev) => [...prev, { role: "user", content: userText }]);
+    setIsChatSending(true);
+
+    try {
+      const res = await fetch("/api/ai/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: selectedAccountId,
+          action: "chat",
+          model: selectedModel,
+          enableWebSearch,
+          messages: messages.slice(-6),
+          userQuestion: userText,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Chat failed");
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply },
+      ]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `⚠️ Error: ${err.message || "Failed to reach AI Coach. Check your OpenRouter key or model settings."}`,
+        },
+      ]);
+    } finally {
+      setIsChatSending(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (!selectedAccountId || isGeneratingReport) return;
+    setIsGeneratingReport(true);
+
+    try {
+      const res = await fetch("/api/ai/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: selectedAccountId,
+          action: "generate-weekly-report",
+          model: selectedModel,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Review generation failed");
+
+      setReports((prev) => [data, ...prev]);
+      setSelectedReport(data);
+      setActiveTab("review");
+    } catch (err: any) {
+      alert(`Report Error: ${err.message || "Check your OpenRouter API key"}`);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto h-[calc(100vh-7rem)] flex flex-col">
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#1b1d2b] pb-4 shrink-0">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              AI Trading Buddy
+            </h1>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              Institutional Edge
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            Tactical trade reviews, real-time market scans, and discipline
+            auditing.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Live Web Search Toggle */}
+          <button
+            onClick={() => setEnableWebSearch(!enableWebSearch)}
+            title="Toggle Live Market Web Search"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              enableWebSearch
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                : "bg-[#0e101a] text-zinc-500 border-[#1b1d2b] hover:text-zinc-300"
+            }`}
+          >
+            <Globe
+              className={`h-3.5 w-3.5 ${enableWebSearch ? "text-emerald-400 animate-pulse" : ""}`}
+            />
+            <span>Web Search: {enableWebSearch ? "ON" : "OFF"}</span>
+          </button>
+
+          {/* Model Selector Dropdown */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0e101a] border border-[#1b1d2b]">
+            <Cpu className="h-3.5 w-3.5 text-purple-400" />
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer"
+            >
+              {AVAILABLE_MODELS.map((m) => (
+                <option
+                  key={m.value}
+                  value={m.value}
+                  className="bg-[#141624] text-zinc-200"
+                >
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-1.5 p-1 bg-[#0e101a] border border-[#1b1d2b] rounded-xl">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === "chat"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Interactive Coach
+            </button>
+            <button
+              onClick={() => setActiveTab("review")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === "review"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Executive Reviews
+            </button>
+          </div>
+
+          <button
+            onClick={handleGenerateReport}
+            disabled={isGeneratingReport}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isGeneratingReport ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            <span>
+              {isGeneratingReport ? "Analyzing Ledger..." : "Generate Review"}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tab 1: Interactive Chat Mode */}
+      {activeTab === "chat" && (
+        <div className="flex-1 flex flex-col rounded-2xl border border-[#1b1d2b] bg-[#0e101a] overflow-hidden">
+          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+            {messages.map((m, idx) => (
+              <div
+                key={idx}
+                className={`flex gap-3 max-w-3xl ${
+                  m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                }`}
+              >
+                <div
+                  className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    m.role === "assistant"
+                      ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
+                      : "bg-[#1e2030] text-zinc-300 font-bold text-xs"
+                  }`}
+                >
+                  {m.role === "assistant" ? <Bot className="h-4 w-4" /> : "TB"}
+                </div>
+                <div
+                  className={`p-4 rounded-2xl text-xs leading-relaxed ${
+                    m.role === "assistant"
+                      ? "bg-[#141624] text-zinc-200 border border-[#232536]"
+                      : "bg-purple-600 text-white"
+                  }`}
+                >
+                  {m.role === "assistant" ? (
+                    <div className="prose prose-invert prose-xs max-w-none space-y-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-white [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-purple-300 [&_strong]:text-white [&_em]:text-zinc-400 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-1 [&_p]:leading-relaxed">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isChatSending && (
+              <div className="flex gap-3 max-w-3xl mr-auto items-center text-xs text-zinc-500">
+                <div className="h-8 w-8 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                  <Bot className="h-4 w-4 animate-pulse" />
+                </div>
+                <span>
+                  {enableWebSearch
+                    ? "Searching live markets and analyzing..."
+                    : "Coach is analyzing..."}
+                </span>
+              </div>
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+
+          <form
+            onSubmit={handleSendMessage}
+            className="p-4 border-t border-[#1b1d2b] bg-[#121320] flex items-center gap-3 shrink-0"
+          >
+            <input
+              type="text"
+              placeholder="Ask about your trades OR live markets (e.g. 'How is NVDA stock today?' or 'Any high-impact news for Gold?')..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              disabled={isChatSending}
+              className="flex-1 bg-[#181a29] border border-[#26283d] text-xs text-white px-4 py-2.5 rounded-xl focus:outline-none focus:border-purple-500 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={isChatSending || !inputMessage.trim()}
+              className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 2: Executive Reviews Mode */}
+      {activeTab === "review" && (
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 overflow-hidden">
+          <div className="md:col-span-1 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-4 flex flex-col">
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5 text-purple-400" /> Past
+              Evaluations
+            </span>
+            <div className="space-y-2 overflow-y-auto flex-1">
+              {reports.length === 0 ? (
+                <p className="text-xs text-zinc-500 mt-4 text-center">
+                  No evaluations yet. Click &quot;Generate Review&quot; above.
+                </p>
+              ) : (
+                reports.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setSelectedReport(r)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                      selectedReport?.id === r.id
+                        ? "bg-purple-600/15 border-purple-500/40 text-white"
+                        : "bg-[#141624] border-[#232536] text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold font-mono">
+                        Date: {r.weekRange}
+                      </span>
+                      <span className="text-xs font-extrabold text-purple-400 px-2 py-0.5 rounded bg-[#1f2238] border border-[#2a2d48]">
+                        {r.grade}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="md:col-span-3 rounded-2xl border border-[#1b1d2b] bg-[#0e101a] p-6 overflow-y-auto">
+            {selectedReport ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1b1d2b] pb-4">
+                  <div>
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider">
+                      Evaluation for {selectedReport.weekRange}
+                    </span>
+                    <h2 className="text-xl font-bold text-white mt-0.5">
+                      Discipline & Edge Audit
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-zinc-400">
+                      Assigned Grade
+                    </span>
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-xl font-extrabold text-white shadow-lg shadow-purple-900/40">
+                      {selectedReport.grade}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="prose prose-invert max-w-none text-xs text-zinc-300 leading-relaxed space-y-3 font-sans [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-purple-300 [&_strong]:text-white [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-1.5 [&_ul]:list-disc [&_ul]:pl-4">
+                  <ReactMarkdown>{selectedReport.analysis}</ReactMarkdown>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center text-zinc-500">
+                <BrainCircuit className="h-10 w-10 text-zinc-600 mb-2" />
+                <p className="text-sm">
+                  Select an evaluation or generate a new one.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

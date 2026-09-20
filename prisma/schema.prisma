@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Account {
+  id             String     @id @default(uuid())
+  userId         String     // Supabase auth.users.id
+  name           String
+  broker         String?
+  currency       String     @default("USD")
+  initialBalance Float      @default(10000.0)
+  maxRisk        Float      @default(2.0)
+  maxDrawdown    Float      @default(5.0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  trades         Trade[]
+  aiReports      AIReport[]
+
+  @@index([userId])
+}
+
+model Trade {
+  id                String    @id @default(uuid())
+  accountId         String
+  account           Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ticketId          String?
+  symbol            String
+  side              String    // 'LONG' | 'SHORT'
+  lotSize           Float
+  entryPrice        Float
+  exitPrice         Float
+  stopLoss          Float?
+  takeProfit        Float?
+  pnl               Float
+  pipsOrPoints      Float?
+  commissionAndSwap Float     @default(0.0)
+  openTime          DateTime
+  closeTime         DateTime
+  session           String?   // 'LONDON' | 'NEW_YORK' | 'ASIAN' | 'OVERLAP'
+  strategy          String?
+  confluences       String[]
+  followedRules     Boolean   @default(true)
+  emotion           String?   // 'CALM' | 'FOMO' | 'REVENGE' | 'ANXIOUS'
+  notes             String?
+  screenshotBefore  String?
+  screenshotAfter   String?
+  createdAt         DateTime  @default(now())
+
+  @@index([accountId])
+}
+
+model AIReport {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  weekRange   String
+  grade       String
+  analysis    String
+  metricsJSON Json?
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
