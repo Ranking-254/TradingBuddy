@@ -6,7 +6,7 @@ import { X, Pencil, AlertCircle } from "lucide-react";
 export interface TradeItem {
   id: string;
   symbol: string;
-  side: string;
+  side: "LONG" | "SHORT";
   lotSize: number;
   entryPrice: number;
   exitPrice: number;
@@ -37,7 +37,7 @@ export function EditTradeModal({
   onSuccess,
 }: EditTradeModalProps) {
   const [symbol, setSymbol] = useState("");
-  const [side, setSide] = useState("LONG");
+  const [side, setSide] = useState<"LONG" | "SHORT">("LONG");
   const [lotSize, setLotSize] = useState("0.1");
   const [entryPrice, setEntryPrice] = useState("");
   const [exitPrice, setExitPrice] = useState("");
