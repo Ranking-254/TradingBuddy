@@ -202,7 +202,7 @@ export function EditTradeModal({
                 </label>
                 <select
                   value={side}
-                  onChange={(e) => setSide(e.target.value)}
+                  onChange={(e) => setSide(e.target.value as "LONG" | "SHORT")}
                   className="w-full mt-1 px-3 py-2 rounded-xl bg-[#141624] border border-[#232740] text-white focus:outline-none focus:border-purple-500 font-medium"
                 >
                   <option value="LONG">LONG (Buy)</option>
