@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAccount } from "@/context/AccountContext";
 import { TradeItem } from "@/components/trades/EditTradeModal";
 import { EconomicEvent } from "@/app/api/calendar/events/route";
+import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
   ChevronLeft,
   ChevronRight,
@@ -34,6 +35,8 @@ export default function CalendarPage() {
     events: EconomicEvent[];
     netPnL: number;
   } | null>(null);
+
+  const currSym = getCurrencySymbol(selectedAccount?.currency);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -237,16 +240,10 @@ export default function CalendarPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0e101a] border border-[#1b1d2b] space-y-0.5 sm:space-y-1">
           <span className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">
-            Month Realized P&L
+            Month Realized P&amp;L
           </span>
-          <p
-            className={`text-lg sm:text-2xl font-black font-mono truncate ${
-              monthStats.totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {monthStats.totalPnL >= 0
-              ? `+$${monthStats.totalPnL.toFixed(2)}`
-              : `-$${Math.abs(monthStats.totalPnL).toFixed(2)}`}
+          <p className="text-lg sm:text-2xl font-black font-mono truncate">
+            <Money amount={monthStats.totalPnL} showSign colorize />
           </p>
         </div>
 
@@ -414,14 +411,8 @@ export default function CalendarPage() {
                     {/* Traded Day Outcome */}
                     {isTraded ? (
                       <div className="mt-auto pt-1 space-y-0.5">
-                        <p
-                          className={`text-[11px] sm:text-xs font-black font-mono truncate ${
-                            dayPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                          }`}
-                        >
-                          {dayPnL >= 0
-                            ? `+$${dayPnL.toFixed(2)}`
-                            : `-$${Math.abs(dayPnL).toFixed(2)}`}
+                        <p className="text-[11px] sm:text-xs font-black font-mono truncate">
+                          <Money amount={dayPnL} showSign colorize />
                         </p>
                         <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-zinc-400">
                           <span>
@@ -485,7 +476,7 @@ export default function CalendarPage() {
                   </h3>
                 </div>
                 <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-                  Performance & high-impact news breakdown for{" "}
+                  Performance &amp; high-impact news breakdown for{" "}
                   {selectedAccount?.name}
                 </p>
               </div>
@@ -505,16 +496,8 @@ export default function CalendarPage() {
                   <span className="text-[10px] sm:text-[11px] text-zinc-400">
                     Day Net Outcome
                   </span>
-                  <p
-                    className={`text-xl sm:text-2xl font-black font-mono ${
-                      selectedDayModal.netPnL >= 0
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                    }`}
-                  >
-                    {selectedDayModal.netPnL >= 0
-                      ? `+$${selectedDayModal.netPnL.toFixed(2)}`
-                      : `-$${Math.abs(selectedDayModal.netPnL).toFixed(2)}`}
+                  <p className="text-xl sm:text-2xl font-black font-mono">
+                    <Money amount={selectedDayModal.netPnL} showSign colorize />
                   </p>
                 </div>
 
@@ -570,7 +553,6 @@ export default function CalendarPage() {
                 </span>
                 <div className="space-y-2 max-h-56 sm:max-h-60 overflow-y-auto pr-1">
                   {selectedDayModal.trades.map((trade) => {
-                    const isProfitable = trade.pnl >= 0;
                     return (
                       <div
                         key={trade.id}
@@ -600,16 +582,8 @@ export default function CalendarPage() {
                         </div>
 
                         <div className="text-right space-y-0.5 sm:space-y-1 shrink-0">
-                          <p
-                            className={`font-black font-mono text-xs sm:text-sm ${
-                              isProfitable
-                                ? "text-emerald-400"
-                                : "text-rose-400"
-                            }`}
-                          >
-                            {isProfitable
-                              ? `+$${trade.pnl.toFixed(2)}`
-                              : `-$${Math.abs(trade.pnl).toFixed(2)}`}
+                          <p className="font-black font-mono text-xs sm:text-sm">
+                            <Money amount={trade.pnl} showSign colorize />
                           </p>
                           <div>
                             {trade.followedRules ? (

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useAccount } from "@/context/AccountContext";
+import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
   BarChart,
   Bar,
@@ -17,6 +18,8 @@ function AnalyticsPage() {
   const { selectedAccountId, selectedAccount } = useAccount();
   const [trades, setTrades] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const currSym = getCurrencySymbol(selectedAccount?.currency);
 
   const fetchTrades = async () => {
     if (!selectedAccountId) return;
@@ -164,7 +167,7 @@ function AnalyticsPage() {
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-purple-400" />
               <h3 className="text-sm font-bold text-white">
-                Session Expectancy ($ P&L)
+                Session Expectancy ({currSym} P&amp;L)
               </h3>
             </div>
             <span className="text-xs text-zinc-500 font-mono">
@@ -190,7 +193,7 @@ function AnalyticsPage() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => `$${v}`}
+                  tickFormatter={(v) => `${currSym}${v}`}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -199,12 +202,8 @@ function AnalyticsPage() {
                       return (
                         <div className="bg-[#141624] border border-[#26283d] p-2.5 rounded-lg text-xs shadow-xl">
                           <p className="font-bold text-white">{data.name}</p>
-                          <p
-                            className={`font-mono font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                          >
-                            {data.pnl >= 0
-                              ? `+$${data.pnl}`
-                              : `-$${Math.abs(data.pnl)}`}
+                          <p className="font-mono font-bold mt-1">
+                            <Money amount={data.pnl} showSign colorize />
                           </p>
                           <p className="text-zinc-400 text-[10px] mt-0.5">
                             Win Rate: {data.winRate}% ({data.total} trades)
@@ -259,7 +258,7 @@ function AnalyticsPage() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => `$${v}`}
+                  tickFormatter={(v) => `${currSym}${v}`}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -268,12 +267,8 @@ function AnalyticsPage() {
                       return (
                         <div className="bg-[#141624] border border-[#26283d] p-2.5 rounded-lg text-xs shadow-xl">
                           <p className="font-bold text-white">{data.name}</p>
-                          <p
-                            className={`font-mono font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                          >
-                            {data.pnl >= 0
-                              ? `+$${data.pnl}`
-                              : `-$${Math.abs(data.pnl)}`}
+                          <p className="font-mono font-bold mt-1">
+                            <Money amount={data.pnl} showSign colorize />
                           </p>
                           <p className="text-zinc-400 text-[10px] mt-0.5">
                             Win Rate: {data.winRate}% ({data.total} trades)
@@ -304,11 +299,11 @@ function AnalyticsPage() {
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4 text-purple-400" />
               <h3 className="text-sm font-bold text-white">
-                Asset & Pair Edge Breakdown
+                Asset &amp; Pair Edge Breakdown
               </h3>
             </div>
             <span className="text-xs text-zinc-500 font-mono">
-              Ranked by Net P&L
+              Ranked by Net P&amp;L
             </span>
           </div>
 
@@ -319,7 +314,7 @@ function AnalyticsPage() {
                   <th className="py-2.5 px-3">Symbol</th>
                   <th className="py-2.5 px-3">Executions</th>
                   <th className="py-2.5 px-3">Win Rate</th>
-                  <th className="py-2.5 px-3 text-right">Net P&L</th>
+                  <th className="py-2.5 px-3 text-right">Net P&amp;L</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#181a28]">
@@ -354,12 +349,8 @@ function AnalyticsPage() {
                           </div>
                         </div>
                       </td>
-                      <td
-                        className={`py-3 px-3 text-right font-mono font-bold ${asset.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                      >
-                        {asset.pnl >= 0
-                          ? `+$${asset.pnl.toFixed(2)}`
-                          : `-$${Math.abs(asset.pnl).toFixed(2)}`}
+                      <td className="py-3 px-3 text-right font-mono font-bold">
+                        <Money amount={asset.pnl} showSign colorize />
                       </td>
                     </tr>
                   ))
@@ -391,13 +382,12 @@ function AnalyticsPage() {
                     <span className="font-semibold text-zinc-200">
                       {emo.name}
                     </span>
-                    <span
-                      className={`font-mono font-bold ${emo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                    >
-                      {emo.pnl >= 0
-                        ? `+$${emo.pnl.toFixed(2)}`
-                        : `-$${Math.abs(emo.pnl).toFixed(2)}`}
-                    </span>
+                    <Money
+                      amount={emo.pnl}
+                      showSign
+                      colorize
+                      className="font-bold"
+                    />
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-1">
                     <span>{emo.total} executions</span>

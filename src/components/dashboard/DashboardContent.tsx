@@ -5,6 +5,7 @@ import { useAccount } from "@/context/AccountContext";
 import { TradeItem } from "@/components/trades/EditTradeModal";
 import { CashFlowModal } from "./CashFlowModal";
 import { AccountTransaction } from "@/app/api/accounts/transactions/route";
+import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
   Activity,
   Flame,
@@ -232,6 +233,8 @@ export default function DashboardContent() {
     return `${center},${topY} ${rightX},${center} ${center},${bottomY} ${leftX},${center}`;
   }, [behavioralStats, center, maxRadius]);
 
+  const currSym = getCurrencySymbol(selectedAccount?.currency);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Banner with Cash Flow Action */}
@@ -257,22 +260,18 @@ export default function DashboardContent() {
         </button>
       </div>
 
-      {/* KPI Cards (Now 5 items in a flexible grid) */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Today's PnL */}
         <div className="p-5 rounded-2xl bg-[#0e101a] border border-[#1b1d2b] space-y-1">
           <div className="flex items-center justify-between text-zinc-400 text-xs">
             <span>TODAY&apos;S P&amp;L</span>
-            <DollarSign className="h-4 w-4" />
+            <span className="font-mono text-sm font-bold text-purple-400">
+              {currSym}
+            </span>
           </div>
-          <p
-            className={`text-2xl font-bold font-mono ${
-              todayPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {todayPnL >= 0
-              ? `+$${todayPnL.toFixed(2)}`
-              : `-$${Math.abs(todayPnL).toFixed(2)}`}
+          <p className="text-2xl font-bold font-mono">
+            <Money amount={todayPnL} showSign colorize />
           </p>
           <p className="text-[11px] text-zinc-500">Session outcome</p>
         </div>
@@ -284,14 +283,10 @@ export default function DashboardContent() {
             <Activity className="h-4 w-4 text-purple-400" />
           </div>
           <p className="text-2xl font-bold font-mono text-white">
-            $
-            {currentBalance.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            <Money amount={currentBalance} />
           </p>
           <p className="text-[11px] text-zinc-500">
-            Deposit: ${initialBalance.toLocaleString()}
+            Deposit: <Money amount={initialBalance} decimals={0} />
           </p>
         </div>
 
@@ -302,11 +297,7 @@ export default function DashboardContent() {
             <ArrowDownRight className="h-4 w-4 text-emerald-400" />
           </div>
           <p className="text-2xl font-bold font-mono text-emerald-400">
-            $
-            {totalWithdrawn.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            <Money amount={totalWithdrawn} />
           </p>
           <p className="text-[11px] text-zinc-500">
             {transactions.filter((t) => t.type === "WITHDRAWAL").length}{" "}
@@ -336,7 +327,7 @@ export default function DashboardContent() {
             {profitFactor}
           </p>
           <p className="text-[11px] text-zinc-500">
-            Net Growth: +${totalNetPnL.toFixed(2)}
+            Net Growth: <Money amount={totalNetPnL} showSign colorize />
           </p>
         </div>
       </div>
@@ -359,11 +350,7 @@ export default function DashboardContent() {
                 Current Portfolio
               </span>
               <span className="font-mono text-sm font-bold text-emerald-400">
-                $
-                {currentBalance.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                <Money amount={currentBalance} />
               </span>
             </div>
           </div>
@@ -476,18 +463,11 @@ export default function DashboardContent() {
                   {hoveredPoint.date}
                 </p>
                 <p className="text-sm font-bold font-mono text-white">
-                  ${hoveredPoint.balance.toFixed(2)}
+                  <Money amount={hoveredPoint.balance} />
                 </p>
                 {hoveredPoint.tradePnl !== 0 && (
-                  <p
-                    className={`text-[11px] font-mono font-bold ${
-                      hoveredPoint.tradePnl > 0
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                    }`}
-                  >
-                    {hoveredPoint.tradePnl > 0 ? "+" : ""}$
-                    {hoveredPoint.tradePnl.toFixed(2)}
+                  <p className="text-[11px] font-mono font-bold">
+                    <Money amount={hoveredPoint.tradePnl} showSign colorize />
                   </p>
                 )}
               </div>
@@ -495,7 +475,9 @@ export default function DashboardContent() {
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-zinc-500 font-mono px-2 pt-1">
-            <span>Deposit: ${initialBalance.toLocaleString()}</span>
+            <span>
+              Deposit: <Money amount={initialBalance} decimals={0} />
+            </span>
             <span>{trades.length} Closed Executions</span>
           </div>
         </div>
@@ -620,8 +602,11 @@ export default function DashboardContent() {
             </h3>
             <span className="text-xs text-zinc-500 font-mono">
               Net Capital Flow:{" "}
-              {totalDeposited - totalWithdrawn >= 0 ? "+" : ""}$
-              {(totalDeposited - totalWithdrawn).toFixed(2)}
+              <Money
+                amount={totalDeposited - totalWithdrawn}
+                showSign
+                colorize
+              />
             </span>
           </div>
 
@@ -651,13 +636,12 @@ export default function DashboardContent() {
                       {item.note && ` • ${item.note}`}
                     </p>
                   </div>
-                  <span
-                    className={`font-black font-mono text-sm ${
-                      isWithdrawal ? "text-rose-400" : "text-emerald-400"
-                    }`}
-                  >
-                    {isWithdrawal ? "-" : "+"}${item.amount.toFixed(2)}
-                  </span>
+                  <Money
+                    amount={isWithdrawal ? -item.amount : item.amount}
+                    showSign
+                    colorize
+                    className="text-sm font-black"
+                  />
                 </div>
               );
             })}

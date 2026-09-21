@@ -1,13 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  X,
-  ArrowDownRight,
-  ArrowUpRight,
-  DollarSign,
-  Wallet,
-} from "lucide-react";
+import { useAccount } from "@/context/AccountContext";
+import { getCurrencySymbol } from "@/components/common/Money";
+import { X, ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
 
 interface CashFlowModalProps {
   isOpen: boolean;
@@ -22,6 +18,10 @@ export function CashFlowModal({
   accountId,
   onSuccess,
 }: CashFlowModalProps) {
+  const { selectedAccount } = useAccount();
+  const targetCurrency = selectedAccount?.currency || "USD";
+  const currSym = getCurrencySymbol(targetCurrency);
+
   const [type, setType] = useState<"WITHDRAWAL" | "DEPOSIT">("WITHDRAWAL");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -130,10 +130,12 @@ export function CashFlowModal({
           </div>
 
           <div>
-            <label className="text-zinc-300 font-medium">Amount ($ USD)</label>
+            <label className="text-zinc-300 font-medium">
+              Amount ({currSym} {targetCurrency})
+            </label>
             <div className="relative mt-1.5">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono">
-                $
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono font-bold">
+                {currSym}
               </span>
               <input
                 type="number"

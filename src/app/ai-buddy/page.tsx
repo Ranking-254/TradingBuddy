@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAccount } from "@/context/AccountContext";
+import { getCurrencySymbol } from "@/components/common/Money";
 import {
   Bot,
   Sparkles,
@@ -43,11 +44,13 @@ export default function AIBuddyPage() {
   const [selectedModel, setSelectedModel] = useState("openrouter/free");
   const [enableWebSearch, setEnableWebSearch] = useState(true);
 
+  const currSym = getCurrencySymbol(selectedAccount?.currency);
+
   // Chat State
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hello! I'm your **Trading Buddy**. I'm connected directly to your ledger for **${selectedAccount?.name || "your account"}**, and live web search is **active**. Ask me about your trade history, or ask for live market updates on assets like NVIDIA, Gold, or upcoming economic events!`,
+      content: `Hello! I'm your **Trading Buddy**. I'm connected directly to your ledger for **${selectedAccount?.name || "your account"}** (denominated in **${selectedAccount?.currency || "USD"} - ${currSym}**), and live web search is **active**. Ask me about your trade history, or ask for live market updates on assets like NVIDIA, Gold, or upcoming economic events!`,
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -114,6 +117,7 @@ export default function AIBuddyPage() {
           enableWebSearch,
           messages: messages.slice(-6),
           userQuestion: userText,
+          currency: selectedAccount?.currency || "USD",
         }),
       });
 
@@ -149,6 +153,7 @@ export default function AIBuddyPage() {
           accountId: selectedAccountId,
           action: "generate-weekly-report",
           model: selectedModel,
+          currency: selectedAccount?.currency || "USD",
         }),
       });
 

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useAccount, Account } from "@/context/AccountContext";
+import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
   Plus,
   ShieldAlert,
@@ -292,7 +293,12 @@ export default function SettingsPage() {
                 </p>
                 <div className="flex items-center justify-between text-xs font-mono mt-2.5">
                   <span className="text-purple-300 font-semibold">
-                    ${acc.initialBalance.toLocaleString()} {acc.currency}
+                    <Money
+                      amount={acc.initialBalance}
+                      currency={acc.currency}
+                      decimals={0}
+                    />{" "}
+                    {acc.currency}
                   </span>
                   <span className="text-[11px] text-zinc-500 font-sans">
                     Risk: {acc.maxRisk ?? 2}% | DD: {acc.maxDrawdown ?? 5}%
@@ -338,7 +344,9 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="text-[11px] text-zinc-400">Balance ($)</label>
+              <label className="text-[11px] text-zinc-400">
+                Balance ({getCurrencySymbol(currency)})
+              </label>
               <input
                 type="number"
                 step="any"
@@ -442,7 +450,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] text-zinc-400">
-                    Initial Balance ($)
+                    Initial Balance ({getCurrencySymbol(editCurrency)})
                   </label>
                   <input
                     type="number"

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { Money } from "@/components/common/Money";
 import {
   X,
   ExternalLink,
@@ -57,8 +58,6 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
 
   if (!trade) return null;
 
-  const isWin = trade.pnl >= 0;
-
   return (
     <div
       onClick={onClose}
@@ -107,14 +106,8 @@ export function TradeDetailModal({ trade, onClose }: TradeDetailModalProps) {
               <p className="text-[10px] text-zinc-400 font-medium uppercase">
                 Net P&L
               </p>
-              <p
-                className={`text-base sm:text-lg font-bold font-mono mt-1 truncate ${
-                  isWin ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {isWin
-                  ? `+$${trade.pnl.toFixed(2)}`
-                  : `-$${Math.abs(trade.pnl).toFixed(2)}`}
+              <p className="text-base sm:text-lg font-bold font-mono mt-1 truncate">
+                <Money amount={trade.pnl} showSign colorize />
               </p>
             </div>
             <div className="p-2.5 sm:p-3 bg-[#131522] rounded-xl border border-[#1f2235]">

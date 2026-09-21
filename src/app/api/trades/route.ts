@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
+// Helper to determine session if MT5 report doesn't provide it
+function inferSession(dateObj: Date): string {
+  const utcHour = dateObj.getUTCHours();
+  if (utcHour >= 0 && utcHour < 7) return "ASIAN";
+  if (utcHour >= 7 && utcHour < 12) return "LONDON";
+  if (utcHour >= 12 && utcHour < 16) return "OVERLAP";
+  return "NEW_YORK";
+}
+
 // GET: Fetch and filter trades for the selected account
 export async function GET(req: NextRequest) {
   try {
@@ -81,7 +90,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Create a new trade (Resolves 405 Method Not Allowed)
+// POST: Create a new single trade OR batch import MT5 trades
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -94,8 +103,104 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const { accountId } = body;
+
+    if (!accountId) {
+      return NextResponse.json(
+        { error: "Account ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Verify ownership of the target account
+    const account = await prisma.account.findFirst({
+      where: { id: accountId, userId: user.id },
+    });
+
+    if (!account) {
+      return NextResponse.json(
+        { error: "Account not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    // ==========================================
+    // CASE A: Batch MT5 Statement Upload
+    // ==========================================
+    if (Array.isArray(body.trades)) {
+      const incomingTrades = body.trades;
+      if (incomingTrades.length === 0) {
+        return NextResponse.json({ count: 0, message: "No trades to import" });
+      }
+
+      // Fetch existing ticket IDs for this account to prevent duplicate entries
+      const incomingTickets = incomingTrades
+        .map((t: any) => t.ticketId)
+        .filter(Boolean);
+
+      const existingTrades = await prisma.trade.findMany({
+        where: {
+          accountId,
+          ticketId: { in: incomingTickets },
+        },
+        select: { ticketId: true },
+      });
+
+      const existingTicketSet = new Set(
+        existingTrades.map((t) => t.ticketId).filter(Boolean),
+      );
+
+      // Filter out trades already present in the database
+      const newTradesToInsert = incomingTrades
+        .filter((t: any) => !t.ticketId || !existingTicketSet.has(t.ticketId))
+        .map((t: any) => {
+          const closeDate = t.closeTime ? new Date(t.closeTime) : new Date();
+          const openDate = t.openTime ? new Date(t.openTime) : closeDate;
+
+          return {
+            accountId,
+            ticketId: t.ticketId || null,
+            symbol: (t.symbol || "UNKNOWN").toUpperCase(),
+            side: t.side === "SHORT" ? "SHORT" : "LONG",
+            lotSize: parseFloat(t.lotSize) || 0.01,
+            entryPrice: parseFloat(t.entryPrice) || 0,
+            exitPrice: parseFloat(t.exitPrice) || 0,
+            stopLoss: t.stopLoss ? parseFloat(t.stopLoss) : null,
+            takeProfit: t.takeProfit ? parseFloat(t.takeProfit) : null,
+            pnl: parseFloat(t.pnl) || 0,
+            commissionAndSwap: parseFloat(t.commissionAndSwap) || 0,
+            openTime: openDate,
+            closeTime: closeDate,
+            session: t.session || inferSession(openDate),
+            strategy: t.strategy || "MT5 Import",
+            confluences: Array.isArray(t.confluences) ? t.confluences : [],
+            followedRules:
+              t.followedRules !== undefined ? Boolean(t.followedRules) : true,
+            emotion: t.emotion || "CALM",
+            notes: t.notes || null,
+          };
+        });
+
+      if (newTradesToInsert.length > 0) {
+        await prisma.trade.createMany({
+          data: newTradesToInsert,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          count: newTradesToInsert.length,
+          skipped: incomingTrades.length - newTradesToInsert.length,
+        },
+        { status: 201 },
+      );
+    }
+
+    // ==========================================
+    // CASE B: Single Manual Trade Log
+    // ==========================================
     const {
-      accountId,
       ticketId,
       symbol,
       side,
@@ -120,7 +225,6 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (
-      !accountId ||
       !symbol ||
       !side ||
       entryPrice === undefined ||
@@ -129,22 +233,9 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          error:
-            "Missing required trade fields (accountId, symbol, side, prices, pnl)",
+          error: "Missing required trade fields (symbol, side, prices, pnl)",
         },
         { status: 400 },
-      );
-    }
-
-    // Verify ownership of the account
-    const account = await prisma.account.findFirst({
-      where: { id: accountId, userId: user.id },
-    });
-
-    if (!account) {
-      return NextResponse.json(
-        { error: "Account not found or access denied" },
-        { status: 404 },
       );
     }
 

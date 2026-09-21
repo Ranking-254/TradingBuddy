@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAccount } from "@/context/AccountContext";
 import { EditTradeModal, TradeItem } from "@/components/trades/EditTradeModal";
+import { TradeDetailModal } from "@/components/trades/TradeDetailModal";
+import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
   Search,
   Pencil,
   Trash2,
+  Eye,
   ArrowUpRight,
   ArrowDownRight,
   Filter,
@@ -23,6 +26,9 @@ export default function TradesPage() {
   const [trades, setTrades] = useState<TradeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Currency Localization
+  const currSym = getCurrencySymbol(selectedAccount?.currency);
+
   // Filters State
   const [searchSymbol, setSearchSymbol] = useState("");
   const [sessionFilter, setSessionFilter] = useState("ALL");
@@ -35,6 +41,10 @@ export default function TradesPage() {
   const [selectedTradeToEdit, setSelectedTradeToEdit] =
     useState<TradeItem | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // View Trade Detail Modal State
+  const [selectedTradeToView, setSelectedTradeToView] =
+    useState<TradeItem | null>(null);
 
   // Fetch trades whenever filters or selectedAccountId change
   const fetchTrades = useCallback(async () => {
@@ -87,8 +97,11 @@ export default function TradesPage() {
 
   // Handle Delete Trade
   const handleDeleteTrade = async (trade: TradeItem) => {
+    const sign = trade.pnl >= 0 ? "+" : "-";
+    const formattedPnl = `${sign}${currSym}${Math.abs(trade.pnl).toFixed(2)}`;
+
     const confirmed = window.confirm(
-      `Delete trade ${trade.symbol} (${trade.side} • $${trade.pnl})? This cannot be undone.`,
+      `Delete trade ${trade.symbol} (${trade.side} • ${formattedPnl})? This cannot be undone.`,
     );
     if (!confirmed) return;
 
@@ -129,16 +142,10 @@ export default function TradesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-[#0e101a] border border-[#1b1d2b] space-y-1">
           <span className="text-[11px] text-zinc-400 font-medium">
-            Filtered Net P&L
+            Filtered Net P&amp;L
           </span>
-          <p
-            className={`text-xl font-black font-mono ${
-              totalNetPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {totalNetPnL >= 0
-              ? `+$${totalNetPnL.toFixed(2)}`
-              : `-$${Math.abs(totalNetPnL).toFixed(2)}`}
+          <p className="text-xl font-black font-mono">
+            <Money amount={totalNetPnL} showSign colorize />
           </p>
         </div>
 
@@ -256,7 +263,7 @@ export default function TradesPage() {
               className="px-2.5 py-1.5 rounded-lg bg-[#141624] border border-[#232740] text-xs text-zinc-200 focus:outline-none focus:border-purple-500"
             >
               <option value="ALL">All Mindsets</option>
-              <option value="CALM">Calm & Disciplined</option>
+              <option value="CALM">Calm &amp; Disciplined</option>
               <option value="FOMO">FOMO</option>
               <option value="REVENGE">Revenge</option>
               <option value="ANXIOUS">Anxious</option>
@@ -276,7 +283,7 @@ export default function TradesPage() {
                 <th className="py-3 px-4">Size</th>
                 <th className="py-3 px-4">Entry</th>
                 <th className="py-3 px-4">Exit</th>
-                <th className="py-3 px-4">P&L ($)</th>
+                <th className="py-3 px-4">P&amp;L ({currSym})</th>
                 <th className="py-3 px-4">Session</th>
                 <th className="py-3 px-4">Mindset</th>
                 <th className="py-3 px-4">Discipline</th>
@@ -301,7 +308,6 @@ export default function TradesPage() {
               ) : (
                 trades.map((trade) => {
                   const isLong = trade.side === "LONG";
-                  const isProfitable = trade.pnl >= 0;
 
                   return (
                     <tr
@@ -348,15 +354,7 @@ export default function TradesPage() {
 
                       {/* Realized PnL */}
                       <td className="py-3.5 px-4 font-mono font-bold">
-                        <span
-                          className={
-                            isProfitable ? "text-emerald-400" : "text-rose-400"
-                          }
-                        >
-                          {isProfitable
-                            ? `+$${trade.pnl.toFixed(2)}`
-                            : `-$${Math.abs(trade.pnl).toFixed(2)}`}
-                        </span>
+                        <Money amount={trade.pnl} showSign colorize />
                       </td>
 
                       {/* Session */}
@@ -415,6 +413,13 @@ export default function TradesPage() {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => setSelectedTradeToView(trade)}
+                            title="View Full Details & Notes"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-purple-300 hover:bg-purple-600/10 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
                             onClick={() => {
                               setSelectedTradeToEdit(trade);
                               setIsEditOpen(true);
@@ -453,6 +458,12 @@ export default function TradesPage() {
         onSuccess={() => {
           fetchTrades();
         }}
+      />
+
+      {/* View Trade Detail Modal Component */}
+      <TradeDetailModal
+        trade={selectedTradeToView}
+        onClose={() => setSelectedTradeToView(null)}
       />
     </div>
   );
