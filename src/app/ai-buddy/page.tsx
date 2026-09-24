@@ -24,17 +24,21 @@ interface Message {
 const AVAILABLE_MODELS = [
   { label: "Auto Free Router (Recommended)", value: "openrouter/free" },
   {
-    label: "DeepSeek V4 Flash",
-    value: "deepseek/deepseek-v4-flash-0731:free",
+    label: "Nex AGI N2.5 Mini",
+    value: "nex-agi/nex-n2.5-mini:free",
   },
   { label: "Cohere North Mini", value: "cohere/north-mini-code:free" },
   {
     label: "NVIDIA LLaMA Nemotron Embed VL",
-    value: "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    value: "nvidia/nemotron-3-super-120b-a12b:free",
   },
   {
     label: "Inclusion Ling 3.0 Flash VL",
-    value: "inclusionai/ling-3.0-flash-vl:free",
+    value: "inclusionai/ling-3.0-flash-sante:free",
+  },
+  {
+    label: "Space Bunny Alpha",
+    value: "stealth/space-bunny-alpha",
   },
 ];
 
