@@ -6,9 +6,12 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CandlestickChart,
+  Globe2,
   CalendarDays,
   Bot,
   BarChart3,
+  Wrench,
+  Activity,
   Shield,
   Settings,
   X,
@@ -25,6 +28,9 @@ const navItems = [
   { name: "Calendar", href: "/calendar", icon: CalendarDays },
   { name: "Buddy AI", href: "/ai-buddy", icon: Bot, badge: "AI" },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Quick Tools", href: "/tools", icon: Wrench },
+  { name: "Currency Strength", href: "/currency-strength", icon: Activity },
+  { name: "Market Overview", href: "/market-overview", icon: Globe2 },
 ];
 
 export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
