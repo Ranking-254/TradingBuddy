@@ -30,11 +30,12 @@ const WATCHLIST_SYMBOLS = [
   { symbol: "FX:EURUSD", label: "EUR/USD", category: "Forex" },
   { symbol: "FX:GBPUSD", label: "GBP/USD", category: "Forex" },
   { symbol: "FX:USDJPY", label: "USD/JPY", category: "Forex" },
+  { symbol: "FX:GBPJPY", label: "GBP/JPY", category: "Forex" },
   { symbol: "OANDA:XAUUSD", label: "XAU/USD (Gold)", category: "Commodities" },
   { symbol: "TVC:USOIL", label: "US Oil (WTI)", category: "Commodities" },
-  { symbol: "NASDAQ:NDX", label: "NAS100", category: "Indices" },
-  { symbol: "DJ:DJI", label: "US30", category: "Indices" },
-  { symbol: "BITSTAMP:BTCUSD", label: "BTC/USD", category: "Crypto" },
+  { symbol: "OANDA:NAS100USD", label: "NAS100", category: "Indices" },
+  { symbol: "OANDA:US30USD", label: "US30", category: "Indices" },
+  { symbol: "OANDA:BTCUSD", label: "BTC/USD", category: "Crypto" },
 ];
 
 function isSessionOpen(now: Date, openUtc: number, closeUtc: number): boolean {
