@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAccount } from "@/context/AccountContext";
 import { Money, getCurrencySymbol } from "@/components/common/Money";
 import {
@@ -12,29 +12,25 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import {
-  Clock,
-  Layers,
-  HeartHandshake,
-  CalendarDays,
-  CalendarRange,
-} from "lucide-react";
+import { Clock, Layers, HeartHandshake, CalendarRange } from "lucide-react";
 
-type TimeGrouping = "DAY_OF_WEEK" | "WEEKLY" | "MONTHLY";
+type TimeGrouping = "DAILY" | "WEEKLY" | "MONTHLY" | "WEEKDAY";
 
 export default function AnalyticsPage() {
   const { selectedAccountId, selectedAccount } = useAccount();
   const [trades, setTrades] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeView, setTimeView] = useState<TimeGrouping>("WEEKLY");
+  const [timeView, setTimeView] = useState<TimeGrouping>("DAILY");
 
   const currSym = getCurrencySymbol(selectedAccount?.currency);
 
-  const fetchTrades = async () => {
+  const fetchTrades = useCallback(async () => {
     if (!selectedAccountId) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/trades?accountId=${selectedAccountId}`);
+      const res = await fetch(`/api/trades?accountId=${selectedAccountId}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const data = await res.json();
         setTrades(Array.isArray(data) ? data : []);
@@ -44,11 +40,18 @@ export default function AnalyticsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedAccountId]);
 
   useEffect(() => {
     fetchTrades();
-  }, [selectedAccountId]);
+  }, [fetchTrades]);
+
+  // Auto-refresh when new trades are logged
+  useEffect(() => {
+    const handleRefresh = () => fetchTrades();
+    window.addEventListener("tradeLogged", handleRefresh);
+    return () => window.removeEventListener("tradeLogged", handleRefresh);
+  }, [fetchTrades]);
 
   const analytics = useMemo(() => {
     const totalTrades = trades.length;
@@ -81,24 +84,34 @@ export default function AnalyticsPage() {
       ANXIOUS: { pnl: 0, wins: 0, total: 0 },
     };
 
-    // 4. Day of the Week
+    // 4. All-time Day of Week (Mon - Fri + Weekend)
     const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const dayMap: Record<string, { pnl: number; wins: number; total: number }> =
-      {
-        Mon: { pnl: 0, wins: 0, total: 0 },
-        Tue: { pnl: 0, wins: 0, total: 0 },
-        Wed: { pnl: 0, wins: 0, total: 0 },
-        Thu: { pnl: 0, wins: 0, total: 0 },
-        Fri: { pnl: 0, wins: 0, total: 0 },
-      };
+    const weekdayMap: Record<
+      string,
+      { pnl: number; wins: number; total: number }
+    > = {
+      Mon: { pnl: 0, wins: 0, total: 0 },
+      Tue: { pnl: 0, wins: 0, total: 0 },
+      Wed: { pnl: 0, wins: 0, total: 0 },
+      Thu: { pnl: 0, wins: 0, total: 0 },
+      Fri: { pnl: 0, wins: 0, total: 0 },
+      Sat: { pnl: 0, wins: 0, total: 0 },
+      Sun: { pnl: 0, wins: 0, total: 0 },
+    };
 
-    // 5. Weekly Trend Aggregator (ISO Week)
+    // 5. Chronological Recent Days (Exact calendar dates: e.g. "Mon 26", "Tue 27")
+    const dailyMap: Record<
+      string,
+      { pnl: number; wins: number; total: number; timestamp: number }
+    > = {};
+
+    // 6. Weekly Trend Aggregator (ISO Week)
     const weekMap: Record<
       string,
       { pnl: number; wins: number; total: number; timestamp: number }
     > = {};
 
-    // 6. Monthly Trend Aggregator (YYYY-MM)
+    // 7. Monthly Trend Aggregator (e.g. "Oct 2026")
     const monthMap: Record<
       string,
       { pnl: number; wins: number; total: number; timestamp: number }
@@ -106,7 +119,8 @@ export default function AnalyticsPage() {
 
     trades.forEach((t) => {
       const isWin = t.pnl > 0;
-      const date = new Date(t.closeTime);
+      const rawDate = t.closeTime || t.openTime || t.createdAt;
+      const date = rawDate ? new Date(rawDate) : new Date();
 
       // Session
       if (t.session && sessionMap[t.session]) {
@@ -129,15 +143,39 @@ export default function AnalyticsPage() {
       emotionMap[emo].total += 1;
       if (isWin) emotionMap[emo].wins += 1;
 
-      // Day of Week
+      // Weekday profiling
       const dayName = daysOfWeek[date.getDay()];
-      if (dayMap[dayName]) {
-        dayMap[dayName].pnl += t.pnl;
-        dayMap[dayName].total += 1;
-        if (isWin) dayMap[dayName].wins += 1;
+      if (weekdayMap[dayName]) {
+        weekdayMap[dayName].pnl += t.pnl;
+        weekdayMap[dayName].total += 1;
+        if (isWin) weekdayMap[dayName].wins += 1;
       }
 
-      // Weekly Key Calculation (ISO Week Number)
+      // Exact Calendar Day (e.g., "Tue 27 Oct")
+      const dayKey = date.toLocaleDateString("en-US", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+      const dayTimestamp = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+      ).getTime();
+
+      if (!dailyMap[dayKey]) {
+        dailyMap[dayKey] = {
+          pnl: 0,
+          wins: 0,
+          total: 0,
+          timestamp: dayTimestamp,
+        };
+      }
+      dailyMap[dayKey].pnl += t.pnl;
+      dailyMap[dayKey].total += 1;
+      if (isWin) dailyMap[dayKey].wins += 1;
+
+      // ISO Week
       const startOfYear = new Date(date.getFullYear(), 0, 1);
       const pastDays = (date.getTime() - startOfYear.getTime()) / 86400000;
       const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
@@ -155,7 +193,7 @@ export default function AnalyticsPage() {
       weekMap[weekKey].total += 1;
       if (isWin) weekMap[weekKey].wins += 1;
 
-      // Monthly Key Calculation (e.g. "Oct 2026")
+      // Month
       const monthKey = date.toLocaleString("en-US", {
         month: "short",
         year: "numeric",
@@ -196,12 +234,27 @@ export default function AnalyticsPage() {
       total: val.total,
     }));
 
-    const dayData = Object.entries(dayMap).map(([name, val]) => ({
-      name,
-      pnl: Math.round(val.pnl * 100) / 100,
-      winRate: val.total > 0 ? Math.round((val.wins / val.total) * 100) : 0,
-      total: val.total,
+    const weekdayData = ["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => ({
+      name: d,
+      pnl: Math.round(weekdayMap[d].pnl * 100) / 100,
+      winRate:
+        weekdayMap[d].total > 0
+          ? Math.round((weekdayMap[d].wins / weekdayMap[d].total) * 100)
+          : 0,
+      total: weekdayMap[d].total,
     }));
+
+    // Sort recent days chronologically, displaying up to the last 14 trading days
+    const dailyData = Object.entries(dailyMap)
+      .map(([name, val]) => ({
+        name,
+        pnl: Math.round(val.pnl * 100) / 100,
+        winRate: val.total > 0 ? Math.round((val.wins / val.total) * 100) : 0,
+        total: val.total,
+        timestamp: val.timestamp,
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-14);
 
     const weekData = Object.entries(weekMap)
       .map(([name, val]) => ({
@@ -228,16 +281,18 @@ export default function AnalyticsPage() {
       sessionData,
       assetData,
       emotionData,
-      dayData,
+      weekdayData,
+      dailyData,
       weekData,
       monthData,
     };
   }, [trades]);
 
   const activeTimeData = useMemo(() => {
+    if (timeView === "DAILY") return analytics.dailyData;
     if (timeView === "WEEKLY") return analytics.weekData;
     if (timeView === "MONTHLY") return analytics.monthData;
-    return analytics.dayData;
+    return analytics.weekdayData;
   }, [timeView, analytics]);
 
   return (
@@ -253,7 +308,7 @@ export default function AnalyticsPage() {
           </span>
         </div>
         <p className="text-xs text-zinc-400 mt-1">
-          Deep behavioral, weekly, and statistical variance for{" "}
+          Deep behavioral, chronological, and statistical variance for{" "}
           <span className="text-purple-400 font-semibold">
             {selectedAccount?.name}
           </span>
@@ -328,20 +383,31 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Dynamic Periodicity Chart (Day of Week vs Weekly vs Monthly) */}
+        {/* Dynamic Periodicity Chart (Daily vs Weekly vs Monthly vs Weekday) */}
         <div className="p-6 rounded-2xl bg-[#0e101a] border border-[#1b1d2b] flex flex-col justify-between">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
               <CalendarRange className="h-4 w-4 text-purple-400" />
               <h3 className="text-sm font-bold text-white">
-                {timeView === "DAY_OF_WEEK" && "Day of Week Performance"}
+                {timeView === "DAILY" && "Recent Days (Yesterday & Today)"}
                 {timeView === "WEEKLY" && "Weekly Realized P&L"}
                 {timeView === "MONTHLY" && "Monthly Net Performance"}
+                {timeView === "WEEKDAY" && "All-Time Weekday Profile"}
               </h3>
             </div>
 
             {/* View Switcher Pills */}
             <div className="flex items-center gap-1 p-1 bg-[#141624] border border-[#232740] rounded-xl text-[10px] font-bold">
+              <button
+                onClick={() => setTimeView("DAILY")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  timeView === "DAILY"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Daily
+              </button>
               <button
                 onClick={() => setTimeView("WEEKLY")}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
@@ -363,9 +429,9 @@ export default function AnalyticsPage() {
                 Monthly
               </button>
               <button
-                onClick={() => setTimeView("DAY_OF_WEEK")}
+                onClick={() => setTimeView("WEEKDAY")}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
-                  timeView === "DAY_OF_WEEK"
+                  timeView === "WEEKDAY"
                     ? "bg-purple-600 text-white shadow-sm"
                     : "text-zinc-400 hover:text-white"
                 }`}
@@ -389,7 +455,7 @@ export default function AnalyticsPage() {
                   <XAxis
                     dataKey="name"
                     stroke="#52525b"
-                    fontSize={11}
+                    fontSize={10}
                     tickLine={false}
                     axisLine={false}
                   />
